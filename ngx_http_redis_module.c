@@ -384,10 +384,10 @@ ngx_http_redis_create_request(ngx_http_request_t *r)
      * othervise add real number from context.
      */
     if (vv[1] == NULL || vv[1]->not_found || vv[1]->len == 0) {
-        b->last = ngx_sprintf(b->last, "%s$1%s", REDIS_SELECT_CMD, CRLF);
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "select 0 redis database" );
-        *b->last++ = '0';
+//        b->last = ngx_sprintf(b->last, "%s$1%s", REDIS_SELECT_CMD, CRLF);
+//       ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+//                       "select 0 redis database" );
+//        *b->last++ = '0';
     } else {
         b->last = ngx_sprintf(b->last, "%s$%d%s", REDIS_SELECT_CMD, vv[1]->len, CRLF);
         b->last = ngx_copy(b->last, vv[1]->data, vv[1]->len);
@@ -453,11 +453,14 @@ ngx_http_redis_process_header(ngx_http_request_t *r)
     ngx_http_upstream_t       *u;
     ngx_http_redis_ctx_t      *ctx;
     ngx_http_redis_loc_conf_t *rlcf;
-    ngx_http_variable_value_t *vv;
+    ngx_http_variable_value_t *vv, *vv2;
     ngx_int_t                  no_auth_cmd;
+    ngx_int_t                  no_db_cmd;
 
     vv = ngx_http_get_indexed_variable(r, ngx_http_redis_auth_index);
+    vv1 = ngx_http_get_indexed_variable(r, ngx_http_redis_db_index);
     no_auth_cmd = (vv == NULL || vv->not_found || vv->len == 0);
+    no_db_cmd = (vv1 == NULL || vv1->not_found || vv1->len == 0);
 
     c = try = 0;
 
@@ -482,11 +485,16 @@ ngx_http_redis_process_header(ngx_http_request_t *r)
      * "-" (bad answer) - try to find 1 string;
      * othervise answer is invalid.
      */
+    if (*p == '$'){
+        try = 1;
+    } else 
     if (*p == '+') {
+        try=3;
         if (no_auth_cmd) {
-            try = 2;
-        } else {
-            try = 3;
+            try--;
+        } 
+        if (no_db_cmd) {
+            try--;
         }
     } else if (*p == '-') {
         try = 1;
@@ -536,7 +544,9 @@ found:
 
     /* Compare pointer and good message, if yes move on the pointer */
     vv = ngx_http_get_indexed_variable(r, ngx_http_redis_auth_index);
-    if (no_auth_cmd) {
+    if (no_auth_cmd && no_db_cmd){
+        //nothing here
+    } else if (no_auth_cmd || no_db_cmd) {
         if (ngx_strncmp(p, REDIS_PLUSOKCRLF, sizeof(REDIS_PLUSOKCRLF) - 1) == 0) {
             p += sizeof(REDIS_PLUSOKCRLF) - 1;
         } else {
