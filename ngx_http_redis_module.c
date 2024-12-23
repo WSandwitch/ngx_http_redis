@@ -453,7 +453,7 @@ ngx_http_redis_process_header(ngx_http_request_t *r)
     ngx_http_upstream_t       *u;
     ngx_http_redis_ctx_t      *ctx;
     ngx_http_redis_loc_conf_t *rlcf;
-    ngx_http_variable_value_t *vv, *vv2;
+    ngx_http_variable_value_t *vv, *vv1;
     ngx_int_t                  no_auth_cmd;
     ngx_int_t                  no_db_cmd;
 
