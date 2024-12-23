@@ -388,16 +388,17 @@ ngx_http_redis_create_request(ngx_http_request_t *r)
 //       ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
 //                       "select 0 redis database" );
 //        *b->last++ = '0';
+        /* Add "\r\n". */
+        *b->last++ = CR; *b->last++ = LF;
     } else {
         b->last = ngx_sprintf(b->last, "%s$%d%s", REDIS_SELECT_CMD, vv[1]->len, CRLF);
         b->last = ngx_copy(b->last, vv[1]->data, vv[1]->len);
         ctx->key.len = b->last - ctx->key.data;
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "select %V redis database", &ctx->key);
+        /* Add "\r\n". */
+        *b->last++ = CR; *b->last++ = LF;
     }
-
-    /* Add "\r\n". */
-    *b->last++ = CR; *b->last++ = LF;
 
     b->last = ngx_sprintf(b->last, "%s$%d%s", REDIS_GET_CMD, vv[2]->len, CRLF);
     /* Get context redis_key from nginx.conf. */
